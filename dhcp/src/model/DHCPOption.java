@@ -1,5 +1,6 @@
 package model;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class DHCPOption { // Opciones definidas en el RFC 1533
@@ -44,6 +45,61 @@ public class DHCPOption { // Opciones definidas en el RFC 1533
         // return the slice 
         return slice; 
     } 
+
+    public static ArrayList<DHCPOption> armarOfferOptions(DireccionIPv4 mascara, DireccionIPv4 giaddr, int tiempoArrendamiento,
+                                            DireccionIPv4 servidor, DireccionIPv4 dns) {
+        
+        ArrayList<DHCPOption> opciones = new ArrayList<>();
+        
+        // 1. Offer
+        byte [] body = new byte[1];
+        body[0] = new Integer(2).byteValue();
+        DHCPOption opcion = new DHCPOption(new Integer(53).byteValue(), new Integer(1).byteValue(), body);
+        opciones.add(opcion);
+
+        // 2. Mascara de subred
+        opcion = new DHCPOption(new Integer(1).byteValue(), new Integer(4).byteValue(), mascara.getDireccion());
+        opciones.add(opcion);
+
+        // 3. Router
+        opcion = new DHCPOption(new Integer(3).byteValue(), new Integer(4).byteValue(), giaddr.getDireccion());
+        opciones.add(opcion);
+
+        // 4. Tiempo arrendamiento
+        opcion = new DHCPOption(new Integer(51).byteValue(), new Integer(4).byteValue(), 
+                                ByteBuffer.allocate(4).putInt(tiempoArrendamiento).array());
+        opciones.add(opcion);
+
+        // 5. Server identifier
+        opcion = new DHCPOption(new Integer(54).byteValue(), new Integer(4).byteValue(), servidor.getDireccion());
+        opciones.add(opcion);
+        
+        // 6. DNS
+        opcion = new DHCPOption(new Integer(6).byteValue(), new Integer(4).byteValue(), dns.getDireccion());
+        opciones.add(opcion);
+
+        return opciones;
+    }
+
+    public static byte[] opcionesAbytes(ArrayList<DHCPOption> opciones){
+        byte[] ops = null;
+        int longitud = 0;
+        for(DHCPOption o : opciones){
+            longitud += 2 + o.getLen(); // Codigo + longitud + cuerpo 
+        }
+        longitud += 1; // Cierre
+        ops = new byte[longitud];
+        int idx = 0;
+        for(DHCPOption o : opciones){
+            ops[idx++] = Integer.valueOf(o.getCode()).byteValue();
+            ops[idx++] = Integer.valueOf(o.getLen()).byteValue();
+            for(int i=0; i < o.getLen(); i++,idx++){
+                ops[idx] = o.getBody()[i];
+            }
+        }
+        ops[idx] = Integer.valueOf(0xFF).byteValue(); // CIERRE (255)
+        return ops;
+    }
 
     public void printBody(){
         for(int i=0; i < this.len; i++){

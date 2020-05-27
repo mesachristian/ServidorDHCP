@@ -183,8 +183,59 @@ public class TramaDHCP {
         return magicCookie.array();
     }
 
-    public static byte[] crearOffer(TramaDHCP dicover){
-        return null;
+    public static byte[] crearOffer(TramaDHCP offer){
+        byte[] offer_b = new byte[240];
+        
+        // ENCABEZADO
+        offer_b[0] = offer.getOp();
+        offer_b[1] = offer.getHtype();
+        offer_b[2] = offer.getHlen();
+        offer_b[3] = offer.getHops();
+
+        // ID DE LA TRANSACCION
+        int i = 4;
+        for(int idx =0; idx < 4; i++, idx++){
+            offer_b[i] = offer.getXid()[idx];
+        }
+
+        // SECS & FLAGS
+        for(int idx =0; idx < 2; i++, idx++){
+            offer_b[i] = offer.getSecs()[idx];
+        }
+        for(int idx =0; idx < 2; i++, idx++){
+            offer_b[i] = offer.getFlags()[idx];
+        }
+
+        // Direcciones IP
+        for(int idx = 0,idx_1=i, idx_2 = i+4, idx_3 = i+8, idx_4 = i+12; idx < 4; idx++, idx_1++,idx_2++,idx_3++,idx_4++){
+            offer_b[idx_1] = offer.getCiaddr()[idx];
+            offer_b[idx_2] = offer.getYiaddr()[idx];
+            offer_b[idx_3] = offer.getSiaddr()[idx];
+            offer_b[idx_4] = offer.getGiaddr()[idx];
+        }
+        i += 16;
+
+        // DIR MAC
+        for(int idx = 0; idx < 16; idx++, i++){
+            offer_b[i] = offer.getChaddr()[idx];
+        }
+
+        // SNAME
+        for(int idx = 0; idx < 64; idx++, i++){
+            offer_b[i] = offer.getSname()[idx];
+        }
+
+        // File
+        for(int idx = 0; idx < 128; idx++, i++){
+            offer_b[i] = offer.getFile()[idx];
+        }
+
+        // Magic Cookie
+        for(int idx = 0; idx < 4; idx++, i++){
+            offer_b[i] = TramaDHCP.MAGIC_COOKIE[idx];
+        }
+        
+        return offer_b;
     }
 
     public static TramaDHCP crearRequest(byte[] datos){

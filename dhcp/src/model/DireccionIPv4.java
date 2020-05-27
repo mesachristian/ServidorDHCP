@@ -3,13 +3,16 @@ package model;
 public class DireccionIPv4 {
     
     private byte[] direccion;
+    private boolean libre;
 
     public DireccionIPv4(byte[] dir){
         direccion = dir;
+        libre = true;
     }
 
     public DireccionIPv4(String dir) {
         direccion = new byte[4];
+        libre = true;
         final String[] octetos = dir.split(":");
         for (int i = 0; i < 4; i++) {
             final Integer integer = Integer.valueOf(octetos[i]);
@@ -19,6 +22,7 @@ public class DireccionIPv4 {
 
     public DireccionIPv4(int[] dir){
         direccion = new byte[4];
+        libre = true;
         for(int i=0; i < 4; i++){
             this.direccion[i] = Integer.valueOf(dir[i]).byteValue();
         }
@@ -34,6 +38,19 @@ public class DireccionIPv4 {
 
     public byte[] getDireccion() {
         return this.direccion;
+    }
+
+
+    public boolean isLibre() {
+        return this.libre;
+    }
+
+    public boolean getLibre() {
+        return this.libre;
+    }
+
+    public void setLibre(boolean libre) {
+        this.libre = libre;
     }
 
     @Override
