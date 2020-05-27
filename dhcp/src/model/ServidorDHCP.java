@@ -68,14 +68,22 @@ public class ServidorDHCP implements Runnable {
 
                                     case 3: // REQUEST
                                         System.out.println("Mensaje REQUEST");
-                                        break;
-
-                                    case 4: // DECLINE
-                                        System.out.println("Mensaje DECLINE");
+                                        byte[] ACK = crearACK(inputBuffer,options);
+                                        if(ACK != null){
+                                            DatagramPacket response = new DatagramPacket(ACK, ACK.length, InetAddress.getByName("255.255.255.255"), 
+                                                                                    ServidorDHCP.CLIENT_PORT);
+                                            server.send(response);
+                                        }else{
+                                            byte[] NACK = crearNACK(inputBuffer,options);
+                                            DatagramPacket response = new DatagramPacket(NACK, NACK.length, InetAddress.getByName("255.255.255.255"), 
+                                                                                    ServidorDHCP.CLIENT_PORT);
+                                            server.send(response);
+                                        }
                                         break;
 
                                     case 7: // RELEASE
                                         System.out.println("Mensaje RELEASE");
+                                        liberarIP(inputBuffer);
                                         break;
 
                                     default:
@@ -152,6 +160,134 @@ public class ServidorDHCP implements Runnable {
             offer[idx] = opccionesOffer_b[i];
         }
         return offer;
+    }
+
+    private static byte[] crearACK(byte[] encabezadoDHCP, ArrayList<DHCPOption> opciones){
+        TramaDHCP tramaDHCP = TramaDHCP.crearTramaDHCP(encabezadoDHCP);
+        tramaDHCP.imprimirTramaDHCP();
+        // A la trama DISCOVER hay que hacerle los siguiente cambios para convertirla en una OFFER
+        // 1. Cambiar el OP al correspondiente
+        tramaDHCP.setOp(new Integer(2).byteValue());
+        // 2. Buscar si el cliente solicita una dirección IP
+        DireccionIPv4 direccionSolicitada = null;
+        for(DHCPOption opcion : opciones){
+            if(opcion.getCode() == 50){
+                direccionSolicitada = new DireccionIPv4(opcion.getBody());
+            }
+        }
+        // 3. Asignar una direccion IP.
+        direccionSolicitada = buscarDireccion(direccionSolicitada);
+        if(direccionSolicitada == null){
+            return null;
+        }
+        // 3.1 Encontrar la subred donde se encuentra esta dirección IP
+        Subred subred = buscarSubred(direccionSolicitada);
+
+        // 3.2 Mensaje Broadcast
+        byte[] bootFlags = new byte[2];
+        bootFlags[0] = Integer.valueOf(0x80).byteValue();
+        bootFlags[1] = Integer.valueOf(0).byteValue();
+        tramaDHCP.setFlags(bootFlags);
+        
+        // 4. Asignar YIADDR
+        tramaDHCP.setYiaddr(direccionSolicitada.getDireccion());
+
+        // 5. Asignar SIADDR
+        tramaDHCP.setSiaddr(ServidorDHCP.DIR_IPv4.getDireccion());
+
+        // 6. Crear una lista con las opcion
+        ArrayList<DHCPOption> opcionesOffer = DHCPOption.armarOfferOptions(subred.getMascara(), subred.getGateway(),
+                                                                            subred.getTiemposArrendamiento().get(direccionSolicitada), 
+                                                                            ServidorDHCP.DIR_IPv4, subred.getDns());
+
+        // 7. Crear un arrgle de byte con las opciones
+        byte[] opccionesOffer_b = DHCPOption.opcionesAbytes(opcionesOffer);
+
+        // 8. Crear el arreglo que se debe retornar
+        byte[] offer = new byte[240 + opccionesOffer_b.length]; // 236(Encabezado) + 4(Cookie) + opciones.lenght  
+        
+        // 9. Llenar el encabezado
+        byte[] encabezado = TramaDHCP.crearOffer(tramaDHCP);
+        for(int i=0; i < 240; i++){
+            offer[i] = encabezado[i];
+        }
+
+        // 10. Poner las opciones
+        int idx = 240;
+        for(int i=0; i < opccionesOffer_b.length; i++, idx++){
+            offer[idx] = opccionesOffer_b[i];
+        }
+        return offer;
+    }
+
+    private static byte[] crearNACK(byte[] encabezadoDHCP, ArrayList<DHCPOption> opciones){
+        TramaDHCP tramaDHCP = TramaDHCP.crearTramaDHCP(encabezadoDHCP);
+        tramaDHCP.imprimirTramaDHCP();
+        // A la trama DISCOVER hay que hacerle los siguiente cambios para convertirla en una OFFER
+        // 1. Cambiar el OP al correspondiente
+        tramaDHCP.setOp(new Integer(2).byteValue());
+        // 2. Buscar si el cliente solicita una dirección IP
+        DireccionIPv4 direccionSolicitada = null;
+        for(DHCPOption opcion : opciones){
+            if(opcion.getCode() == 50){
+                direccionSolicitada = new DireccionIPv4(opcion.getBody());
+            }
+        }
+        // 3. Asignar una direccion IP.
+        direccionSolicitada = buscarDireccion(direccionSolicitada);
+        if(direccionSolicitada == null){
+            return null;
+        }
+        // 3.1 Encontrar la subred donde se encuentra esta dirección IP
+        Subred subred = buscarSubred(direccionSolicitada);
+
+        // 3.2 Mensaje Broadcast
+        byte[] bootFlags = new byte[2];
+        bootFlags[0] = Integer.valueOf(0x80).byteValue();
+        bootFlags[1] = Integer.valueOf(0).byteValue();
+        tramaDHCP.setFlags(bootFlags);
+        
+        // 4. Asignar YIADDR
+        tramaDHCP.setYiaddr(direccionSolicitada.getDireccion());
+
+        // 5. Asignar SIADDR
+        tramaDHCP.setSiaddr(ServidorDHCP.DIR_IPv4.getDireccion());
+
+        // 6. Crear una lista con las opcion
+        ArrayList<DHCPOption> opcionesOffer = DHCPOption.armarOfferOptions(subred.getMascara(), subred.getGateway(),
+                                                                            subred.getTiemposArrendamiento().get(direccionSolicitada), 
+                                                                            ServidorDHCP.DIR_IPv4, subred.getDns());
+
+        // 7. Crear un arrgle de byte con las opciones
+        byte[] opccionesOffer_b = DHCPOption.opcionesAbytes(opcionesOffer);
+
+        // 8. Crear el arreglo que se debe retornar
+        byte[] offer = new byte[240 + opccionesOffer_b.length]; // 236(Encabezado) + 4(Cookie) + opciones.lenght  
+        
+        // 9. Llenar el encabezado
+        byte[] encabezado = TramaDHCP.crearOffer(tramaDHCP);
+        for(int i=0; i < 240; i++){
+            offer[i] = encabezado[i];
+        }
+
+        // 10. Poner las opciones
+        int idx = 240;
+        for(int i=0; i < opccionesOffer_b.length; i++, idx++){
+            offer[idx] = opccionesOffer_b[i];
+        }
+        return offer;
+    }
+
+    private static void liberarIP(byte[] encabezadoDHCP){
+        TramaDHCP tramaDHCP = TramaDHCP.crearTramaDHCP(encabezadoDHCP);
+        DireccionIPv4 dirLiberar = new DireccionIPv4(tramaDHCP.getCiaddr());
+        Subred subred = buscarSubred(dirLiberar);
+
+        for(DireccionIPv4 dir : subred.getDirecciones()){
+            if(dir.equals(dirLiberar)){
+                dir.setLibre(true);
+            }
+        }
     }
 
     private static DireccionIPv4 buscarDireccion(DireccionIPv4 direccion){
