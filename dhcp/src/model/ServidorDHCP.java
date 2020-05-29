@@ -296,7 +296,7 @@ public class ServidorDHCP implements Runnable {
     private static void liberarIP(byte[] encabezadoDHCP){
         TramaDHCP tramaDHCP = TramaDHCP.crearTramaDHCP(encabezadoDHCP);
         DireccionIPv4 dirLiberar = new DireccionIPv4(tramaDHCP.getCiaddr());
-        System.out.println("Se libera: " + dirLiberar.toString())); 
+        System.out.println("Se libera: " + dirLiberar.toString()); 
         ArrayList<Subred> sbr = new ArrayList<>();
         for(Subred s : subredes){
             ArrayList<DireccionIPv4>dirs = new ArrayList<>();
@@ -330,7 +330,7 @@ public class ServidorDHCP implements Runnable {
             for(DireccionIPv4 dir : s.getDirecciones()){
                 DireccionIPv4 temp = dir;
                 if(dir.equals(dirOcupar)){
-                    System.out.println("Se ocupa: " + dir.toString()));     
+                    System.out.println("Se ocupa: " + dir.toString());     
                     temp = new DireccionIPv4(dir.getDireccion(),false);; 
                 }
                 dirs.add(temp);
