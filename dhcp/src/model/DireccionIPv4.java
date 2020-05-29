@@ -10,6 +10,11 @@ public class DireccionIPv4 {
         libre = true;
     }
 
+    public DireccionIPv4(byte[] dir,boolean libre){
+        direccion = dir;
+        this.libre = libre;
+    }
+
     public DireccionIPv4(String dir) {
         direccion = new byte[4];
         libre = true;
@@ -56,5 +61,29 @@ public class DireccionIPv4 {
     @Override
     public String toString(){
         return String.format("%d.%d.%d.%d", direccion[0] & 0xFF, direccion[1] & 0xFF, direccion[2] & 0xFF, direccion[3] & 0xFF);
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if (this == obj){
+            return true;
+        } 
+        if (obj == null || this.getClass() != obj.getClass()){
+            return false;
+        }
+
+        DireccionIPv4 dir = (DireccionIPv4) obj;
+        boolean igual = true;
+        for(int i=0; i < 4; i++){
+            if(dir.getDireccion()[i] != direccion[i]){
+                igual = false;
+            }
+        }
+        return igual;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.toString().hashCode();
     }
 }

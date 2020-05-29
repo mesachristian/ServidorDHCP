@@ -13,9 +13,9 @@ public class DHCPOption { // Opciones definidas en el RFC 1533
         this.code = code & 0xFF;
         this.len = len & 0xFF;
         this.body = new byte[this.len];
-        for(int i=0; i < len; i++){
+        for(int i=0; i < this.len; i++){
             this.body[i] = body[i];
-        }     
+        }  
     }
 
     public static ArrayList<DHCPOption> getOptions(byte[] data){
@@ -24,11 +24,11 @@ public class DHCPOption { // Opciones definidas en el RFC 1533
         int pos = 0;
 
         while( data[pos] != new Integer(0xFF).byteValue() ){ // Endmark : 255
-            DHCPOption option = new DHCPOption( data[pos], data[pos + 1], getSliceOfArray(data,pos+2,data.length - 1));
+            
+            DHCPOption option = new DHCPOption( data[pos], data[pos + 1], getSliceOfArray(data,pos+2,data.length));
             pos += 2 + option.len;
             options.add(option);
         }
-
         return options;
     }
 
@@ -76,6 +76,70 @@ public class DHCPOption { // Opciones definidas en el RFC 1533
         
         // 6. DNS
         opcion = new DHCPOption(new Integer(6).byteValue(), new Integer(4).byteValue(), dns.getDireccion());
+        opciones.add(opcion);
+
+        return opciones;
+    }
+
+    public static ArrayList<DHCPOption> armarACKOptions(DireccionIPv4 mascara, DireccionIPv4 giaddr, int tiempoArrendamiento,
+                                            DireccionIPv4 servidor, DireccionIPv4 dns) {
+        
+        ArrayList<DHCPOption> opciones = new ArrayList<>();
+        
+        // 1. ACK
+        byte [] body = new byte[1];
+        body[0] = new Integer(5).byteValue();
+        DHCPOption opcion = new DHCPOption(new Integer(53).byteValue(), new Integer(1).byteValue(), body);
+        opciones.add(opcion);
+
+        // 2. Mascara de subred
+        opcion = new DHCPOption(new Integer(1).byteValue(), new Integer(4).byteValue(), mascara.getDireccion());
+        opciones.add(opcion);
+
+        // 3. Router
+        opcion = new DHCPOption(new Integer(3).byteValue(), new Integer(4).byteValue(), giaddr.getDireccion());
+        opciones.add(opcion);
+
+        // 4. Tiempo arrendamiento
+        opcion = new DHCPOption(new Integer(51).byteValue(), new Integer(4).byteValue(), 
+                                ByteBuffer.allocate(4).putInt(tiempoArrendamiento).array());
+        opciones.add(opcion);
+
+        // 5. Server identifier
+        opcion = new DHCPOption(new Integer(54).byteValue(), new Integer(4).byteValue(), servidor.getDireccion());
+        opciones.add(opcion);
+
+        return opciones;
+    }
+
+    public static ArrayList<DHCPOption> armarRequestOptions() {
+        
+        ArrayList<DHCPOption> opciones = new ArrayList<>();
+        
+        // 1. ACK
+        byte [] body = new byte[1];
+        body[0] = new Integer(3).byteValue();
+        DHCPOption opcion = new DHCPOption(new Integer(53).byteValue(), new Integer(1).byteValue(), body);
+        opciones.add(opcion);
+
+        // 2. Mascara de subred
+        opcion = new DHCPOption(new Integer(50).byteValue(), new Integer(4).byteValue(), new DireccionIPv4("192:168:0:201").getDireccion());
+        opciones.add(opcion);
+
+        opcion = new DHCPOption(new Integer(54).byteValue(), new Integer(4).byteValue(), new DireccionIPv4("192:168:0:25").getDireccion());
+        opciones.add(opcion);
+
+        return opciones;
+    }
+
+    public static ArrayList<DHCPOption> armarNACKOptions() {
+        
+        ArrayList<DHCPOption> opciones = new ArrayList<>();
+        
+        // 1. NACK
+        byte [] body = new byte[1];
+        body[0] = new Integer(6).byteValue();
+        DHCPOption opcion = new DHCPOption(new Integer(53).byteValue(), new Integer(1).byteValue(), body);
         opciones.add(opcion);
 
         return opciones;

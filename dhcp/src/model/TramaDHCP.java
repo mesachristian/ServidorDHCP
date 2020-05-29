@@ -238,9 +238,63 @@ public class TramaDHCP {
         return offer_b;
     }
 
-    public static TramaDHCP crearRequest(byte[] datos){
-        TramaDHCP tramaRequest = new TramaDHCP();
-        return tramaRequest;
+    public static byte[] crearRequest(){
+        byte[] offer_b = new byte[240];
+        
+        // ENCABEZADO
+        offer_b[0] = 1;
+        offer_b[1] = 1;
+        offer_b[2] = 6;
+        offer_b[3] = 0;
+
+        // ID DE LA TRANSACCION
+        int i = 4;
+        byte[] xid = armarXID();
+        for(int idx =0; idx < 4; i++, idx++){
+            offer_b[i] = xid[idx];
+        }
+
+        // SECS & FLAGS
+        for(int idx =0; idx < 2; i++, idx++){
+            offer_b[i] = 0;
+        }
+        for(int idx =0; idx < 2; i++, idx++){
+            offer_b[i] = 0;
+        }
+
+        // Direcciones IP
+        for(int idx = 0,idx_1=i, idx_2 = i+4, idx_3 = i+8, idx_4 = i+12; idx < 4; idx++, idx_1++,idx_2++,idx_3++,idx_4++){
+            offer_b[idx_1] = 0;
+            offer_b[idx_2] = 0;
+            offer_b[idx_3] = 0;
+            offer_b[idx_4] = 0;
+        }
+        i += 16;
+
+        // DIR MAC
+        for(int idx = 0; idx < 6; idx++, i++){
+            offer_b[i] = 2;
+        }
+        for(int idx = 0; idx < 10; idx++, i++){
+            offer_b[i] = 0;
+        }
+
+        // SNAME
+        for(int idx = 0; idx < 64; idx++, i++){
+            offer_b[i] = 0;
+        }
+
+        // File
+        for(int idx = 0; idx < 128; idx++, i++){
+            offer_b[i] = 0;
+        }
+
+        // Magic Cookie
+        for(int idx = 0; idx < 4; idx++, i++){
+            offer_b[i] = TramaDHCP.MAGIC_COOKIE[idx];
+        }
+        
+        return offer_b;
     }
 
     public static byte[] crearACK(TramaDHCP request){
